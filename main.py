@@ -1,8 +1,6 @@
 import logging
-import random
 import os
 import time
-from os import listdir
 import telegram
 from telegram import (ReplyKeyboardMarkup, ReplyKeyboardRemove)
 from telegram.ext import (Updater, CommandHandler, MessageHandler, Filters,
@@ -19,7 +17,7 @@ TOKEN = '2009911477:AAE3ZP3tGYdx4OqZqWZTvyX56x1XdnqanRQ'
 #TOKEN = '2022344697:AAFjDURv67Rmw_QGvEw4XHifm8LlmT8vmQo'  # test
 bot = telegram.Bot(token=TOKEN)
 
-CHECK_INPUT, DOWNLOAD_PHOTO, GET_TITLE, GET_CATEGORY1, GET_CATEGORY2 = range(5)
+CHECK_INPUT, DOWNLOAD_PHOTO, GET_TITLE, GET_CATEGORY1, GET_CATEGORY2, CHOOSE_CATEGORY1, CHOOSE_CATEGORY2 = range(7)
 
 reply_keyboard = [['Добавить вещь', 'Найти вещь', 'Обменяться']]
 reply_keyboard_start = [['Добавить вещь', 'Найти вещь']]
@@ -36,6 +34,13 @@ reply_keyboard_category2 = [['назад', 'спортивные вещи'],
                             ['транспорт', 'растения', 'другое'],
                             ]
 
+reply_keyboard_choose_category1 = [
+    ['одежда, обувь', 'аксессуары, украшения', 'бытовая техника'],
+    ['продукты питания', 'кухонная утварь'],
+    ['игрушки и детские вещи', 'детская одежда и обувь'],
+    ['ремонт и строительство', 'ещё'],
+    ]
+
 markup = ReplyKeyboardMarkup(reply_keyboard, resize_keyboard=True)
 markup_start = ReplyKeyboardMarkup(reply_keyboard_start, resize_keyboard=True,
                                    one_time_keyboard=True)
@@ -45,6 +50,11 @@ markup_category1 = ReplyKeyboardMarkup(reply_keyboard_category1,
 markup_category2 = ReplyKeyboardMarkup(reply_keyboard_category2,
                                        resize_keyboard=True,
                                        one_time_keyboard=True)
+markup_choose_category1 = ReplyKeyboardMarkup(reply_keyboard_choose_category1,
+                                       resize_keyboard=True,
+                                       one_time_keyboard=True)
+
+global choose_category
 
 
 def start(update, context):
@@ -96,7 +106,7 @@ def get_title(update, context):
     logger.info("Dietary Specification of food: %s", update.message.text)
     time.sleep(1)
     #db.add_thing От сюда нужно убрать добавить на строку 118 и 144
-    db.add_thing(title, db_path, user_id)  # запись вещи в БД
+    #db.add_thing(title, db_path, user_id)  # запись вещи в БД
     update.message.reply_text('Выберите категорию',
                               reply_markup=markup_category1)
     return GET_CATEGORY1
@@ -115,7 +125,7 @@ def get_catigory1(update, context):
         chat_id = update.message.chat_id
         username = user.username
         #Функцию нужна здесь и записывать все эти аргументы
-        #db.add_thing(title, db_path, user_id, category, chat_id, username)  # запись вещи в БД
+        db.add_thing(title, db_path, user_id, category, chat_id, username)  # запись вещи в БД
         update.message.reply_text('Ваша вещь принята)')
         time.sleep(1)
         update.message.reply_text(
@@ -141,11 +151,11 @@ def get_catigory2(update, context):
         chat_id = update.message.chat_id
         username = user.username
         # Функцию нужна здесь и записывать все эти аргументы
-        # db.add_thing(title, db_path, user_id, category, chat_id, username)  # запись вещи в БД
+        db.add_thing(title, db_path, user_id, category, chat_id, username)  # запись вещи в БД
         update.message.reply_text('Ваша вещь принята)')
         time.sleep(1)
         update.message.reply_text(
-            'Чтобы посмотреть доступные вещи напиши “Найти вещь”',
+            'Чтобы посмотреть доступные вещи нажми “Найти вещь”',
             reply_markup=markup_start)
         return CHECK_INPUT
     elif update.message.text == 'назад':
@@ -156,6 +166,7 @@ def get_catigory2(update, context):
 
 def check_input(update, context):
     user_message = update.message.text
+    global tg_chat_id
     tg_chat_id = update.message.chat_id
     time.sleep(1)
     if user_message == 'Добавить вещь':
@@ -163,11 +174,14 @@ def check_input(update, context):
                                   reply_markup=ReplyKeyboardRemove())
         return DOWNLOAD_PHOTO
     elif user_message == 'Найти вещь':
-        update.message.reply_text('Если вещь понравилась, жми "Обменяться"',
-                                  reply_markup=markup)
-        send_pictures_to_telegram(tg_chat_id, update)
+        update.message.reply_text('Выберите категорию',
+                                   reply_markup=markup_choose_category1)
+        #send_pictures_to_telegram(tg_chat_id, update)
+        # choose_catigory1(update, context)
+        return CHOOSE_CATEGORY1
     elif user_message == 'Обменяться':
         exchange_things(update)
+
         update.message.reply_text('Принято, можешь продолжить выбор вещей')
     else:
         update.message.reply_text("Неверная команда.")
@@ -178,12 +192,18 @@ def check_input(update, context):
 def exchange_things(update):
     user = update.message.from_user
     user_id = user.id
-    id_owner = thing[3]
-    # id_thing = thing[0]
+    id_owner = thing[3] #id_owner = thing[3] NameError: name 'thing' is not defined
+    #print(id_owner)
+    id_thing = thing[0]
     db.add_priority_things(id_owner, user_id)
-    if db.check_for_matches(user_id, id_owner) != None and flag == True:
-        # тут должна быть отправка пуш-уведомлений
-        update.message.reply_text('Обмен контактов произведен')
+    # Здесь тоже самое добавляем во 2ю БД
+    if db.check_for_matches(user_id, id_owner) != None and flag == True: #Запрос делать во 2ю БД
+        #print(db.check_for_matches(user_id, id_owner))
+        update.message.reply_text('Вот id владельца данной вещи:')
+        update.message.reply_text(id_owner)
+        message = 'Привет! Пользователь с id ' + id_owner + ' заинтересовался твоей вещью ' + thing[1] + ' ранее вы интересовались его вещью:' + (
+        db.get_thing(db.check_for_matches(user_id, id_owner)[1])[1])
+        bot.send_message(chat_id=id_owner, text=message)
 
 
 def cancel(update, _):
@@ -200,15 +220,65 @@ def cancel(update, _):
     return ConversationHandler.END
 
 
-def send_pictures_to_telegram(tg_chat_id, update):
+def choose_catigory1(update, context):
+    catigory1 = ['одежда, обувь', 'аксессуары, украшения',
+                 'кухонная утварь',
+                 'бытовая техника', 'продукты питания', 'все категории',
+                 'игрушки и детские вещи', 'детская одежда и обувь',
+                 'ремонт и строительство'
+                 ]
+    if update.message.text in catigory1:
+        user = update.message.from_user
+        #tg_chat_id = user.chat_id
+
+        choose_category = update.message.text
+        print(f"choose_catigory {choose_category}")
+        update.message.reply_text(f'Kатегория: "{choose_category}"',
+                                  reply_markup=markup)
+        send_pictures_to_telegram(tg_chat_id, update, choose_category)
+        return CHECK_INPUT
+    elif update.message.text == 'ещё':
+
+        update.message.reply_text(
+            'Выберите категорию', reply_markup=markup_category2)
+
+        return CHOOSE_CATEGORY2
+
+
+
+def choose_catigory2(update, context):
+    catigory2 = ['спортивные вещи', 'мебель, интерьерные вещи',
+                 'коллекционные вещи',
+                 'электроника', 'творчества и хобби', 'ремонт и строительство',
+                 'транспорт', 'растения', 'другое'
+                 ]
+    if update.message.text in catigory2:
+        user = update.message.from_user
+        #tg_chat_id = user.chat_id
+
+        choose_category = update.message.text
+        print(f"choose_catigory {choose_category}")
+        update.message.reply_text(f'Kатегория: "{choose_category}"',
+                                  reply_markup=markup)
+        send_pictures_to_telegram(tg_chat_id, update, choose_category)
+        return CHECK_INPUT
+    elif update.message.text == 'назад':
+
+        update.message.reply_text(
+            'Выберите категорию', reply_markup=markup_choose_category1)
+        return CHOOSE_CATEGORY1
+
+
+def send_pictures_to_telegram(tg_chat_id, update, choose_category):
     user = update.message.from_user
     user_id = user.id
+    category = choose_category #Это категория которую выбрал пользователь
     id_thing = db.cut_priority_thing(user_id)
     if id_thing:  # выводим вещь из списка приоритетов
         global thing, flag
         flag = True
         thing = db.get_thing(id_thing)
-        print('thing =', thing)
+        #print('thing =', thing)
         name_thing = thing[1]
         path = thing[2]
         update.message.reply_text(
@@ -217,17 +287,22 @@ def send_pictures_to_telegram(tg_chat_id, update):
             bot.send_photo(chat_id=tg_chat_id,
                            photo=open(path, "rb"))
         update.message.reply_text(name_thing)
-
+        time.sleep(1)
+        update.message.reply_text('Если вещь понравилась, жми "Обменяться"')
     else:  # если в таблице приоритетов нет записей, то переходим на вывод случайной вещи
         flag = False
-        random_thing = db.get_random_thing(user_id)
-        thing = random_thing
-        name_thing = random_thing[1]
-        path = random_thing[2]
-        with open(path, "rb") as file:
-            bot.send_photo(chat_id=tg_chat_id,
-                           photo=open(path, "rb"))
-        update.message.reply_text(name_thing)
+        try:
+            random_thing = db.get_random_thing(user_id, choose_category) #вместо текста нужна переменная
+            thing = random_thing
+            name_thing = random_thing[1]
+            path = random_thing[2]
+            with open(path, "rb") as file:
+                bot.send_photo(chat_id=tg_chat_id,
+                               photo=open(path, "rb"))
+            update.message.reply_text(name_thing)
+        except TypeError:
+            update.message.reply_text('Упс, пусто(. Попробуй ещё раз.')
+
 
 
 def main():
@@ -253,6 +328,12 @@ def main():
 
             GET_CATEGORY2: [CommandHandler('start', start),
                             MessageHandler(Filters.text, get_catigory2)],
+
+            CHOOSE_CATEGORY1: [CommandHandler('start', start),
+                            MessageHandler(Filters.text, choose_catigory1)],
+
+            CHOOSE_CATEGORY2: [CommandHandler('start', start),
+                               MessageHandler(Filters.text, choose_catigory2)],
 
         },
 

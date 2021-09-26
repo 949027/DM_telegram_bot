@@ -10,32 +10,27 @@ def create_table_things():
                       (id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
                        name TEXT, 
                        image TEXT,
-                       owner TEXT)
+                       owner TEXT,
+                       category TEXT,
+                       chat_id TEXT,
+                       username TEXT)
                    """)
 
 #получить рандомную вещь
-def get_random_thing(id_user):
+def get_random_thing(id_user, category):
     print(id_user)
-    sql = "SELECT * FROM things WHERE owner IS NOT ?" \
+    sql = "SELECT * FROM things WHERE category=? AND owner IS NOT ?" \
           "ORDER BY RANDOM()" \
           "LIMIT 1"
-    cursor.execute(sql, [(id_user)])
+    cursor.execute(sql, [(category), (id_user)])
     return cursor.fetchone()
 
-#print(get_random_thing(20046788))
-
-
-
-def create_table_wishes():
-#Создание таблицы "Желания"
-    cursor.execute("""CREATE TABLE wishes
-                          (user TEXT,
-                           id TEXT)
-                       """)
-
 #Внесение вещи в таблицу
-def add_thing(name, image, owner):
-    cursor.execute("""INSERT INTO things VALUES (NULL, ?, ?, ?)""", [(name), (image), (owner)])
+def add_thing(name, image, owner, category, chat_id, username):
+    cursor.execute(
+        """INSERT INTO things VALUES (NULL, ?, ?, ?, ?, ?, ?)""",
+        [(name), (image), (owner), (category), (chat_id), (username)]
+    )
     conn.commit()
 
 #Внесение вещи в список желаний
@@ -72,7 +67,7 @@ def get_one_thing(user):
 #Создание таблицы Приоритет
 def create_table_priority_things():
     cursor.execute("""CREATE TABLE priority_things
-                          (id_target_user TEXT,
+                          (id_user TEXT,
                            id_thing TEXT,
                            id_owner TEXT)
                        """)
@@ -102,7 +97,7 @@ def delete_priority_things():
 def check_for_matches(id_user, id_owner):
     #print(show_priority_things())
     sql = "SELECT * FROM priority_things WHERE id_owner = ? AND id_user = ?"
-    cursor.execute(sql, [(id_owner), (id_user)])
+    cursor.execute(sql, [(id_user), (id_owner)])
     conn.commit()
     #print('check=', cursor.fetchone())
     #print(show_priority_things())
@@ -140,21 +135,9 @@ def cut_priority_thing(id_user):
     return id_thing
 
 
-
-
-#print(cut_priority_thing(200466788))
-#create_table_priority_things()
-#add_priority_thing(200466788, 1, 1064554654)
-#print(cut_priority_thing(200466788))
-#print(show_priority_things())
-
-
 #create_table_things()
-#add_thing(325475, 'Vitaly_1041573069\\3.jpg', '4534556546')
-#add_thing('Самокат', '200466788/AgACAgIAAxkBAAIExGFNi7HOtbALQhHveRr0zPt7tWOdAAJItjEbt65oSmG4xlSdXhQLAQADAgADbQADIQQ.jpg', '346446541')
-# add_thing('Кепка', 'http://.....', '@username')
-# print(get_thing(3))
-# print(get_all_things('@Ivan'))
-#print(get_one_thing(2458))
-
+#create_table_priority_things()
+#add_thing('Кепка', 'http://.....', '@username', 'regt', 'egewrgw', 'wgrewgt')
+#print(show_priority_things())
 #print(show_things())
+#print(get_one_thing(200466788)[6])
