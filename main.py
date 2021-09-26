@@ -34,13 +34,6 @@ reply_keyboard_category2 = [['назад', 'спортивные вещи'],
                             ['транспорт', 'растения', 'другое'],
                             ]
 
-reply_keyboard_choose_category1 = [
-    ['одежда, обувь', 'аксессуары, украшения', 'бытовая техника'],
-    ['продукты питания', 'кухонная утварь'],
-    ['игрушки и детские вещи', 'детская одежда и обувь'],
-    ['ремонт и строительство', 'ещё'],
-    ]
-
 markup = ReplyKeyboardMarkup(reply_keyboard, resize_keyboard=True)
 markup_start = ReplyKeyboardMarkup(reply_keyboard_start, resize_keyboard=True,
                                    one_time_keyboard=True)
@@ -48,9 +41,6 @@ markup_category1 = ReplyKeyboardMarkup(reply_keyboard_category1,
                                        resize_keyboard=True,
                                        one_time_keyboard=True)
 markup_category2 = ReplyKeyboardMarkup(reply_keyboard_category2,
-                                       resize_keyboard=True,
-                                       one_time_keyboard=True)
-markup_choose_category1 = ReplyKeyboardMarkup(reply_keyboard_choose_category1,
                                        resize_keyboard=True,
                                        one_time_keyboard=True)
 
@@ -175,7 +165,7 @@ def check_input(update, context):
         return DOWNLOAD_PHOTO
     elif user_message == 'Найти вещь':
         update.message.reply_text('Выберите категорию',
-                                   reply_markup=markup_choose_category1)
+                                   reply_markup=markup_category1)
         #send_pictures_to_telegram(tg_chat_id, update)
         # choose_catigory1(update, context)
         return CHOOSE_CATEGORY1
@@ -265,7 +255,7 @@ def choose_catigory2(update, context):
     elif update.message.text == 'назад':
 
         update.message.reply_text(
-            'Выберите категорию', reply_markup=markup_choose_category1)
+            'Выберите категорию', reply_markup=markup_category1)
         return CHOOSE_CATEGORY1
 
 
